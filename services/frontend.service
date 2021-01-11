@@ -1,0 +1,17 @@
+[Unit]
+Description=Amundsen frontend
+After=network.target
+
+# I want to create a deploy/www-data user to do all of this
+# The service needs to run in the www-data group
+[Service]
+User=amundsen
+Group=www-data
+
+WorkingDirectory=/home/amundsen/amundsenfrontendlibrary
+Environment="PATH=/home/amundsen/amundsenfrontendlibrary/bin"
+Environment="LOCAL_HOST=52.25.32.128"
+ExecStart=/home/amundsen/amundsenfrontendlibrary/bin/gunicorn --workers 3 --bind unix:frontend.sock -m 007 amundsen_application.wsgi
+
+[Install]
+WantedBy=multi-user.target

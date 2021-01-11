@@ -12,3 +12,8 @@ variable "public_key" {
   type    = string
   default = ""
 }
+
+variable "neo4j_password" {
+  type    = string
+  default = ""
+}

@@ -1,0 +1,18 @@
+[Unit]
+Description=Amundsen search project
+After=network.target
+
+# I want to create a deploy/www-data user to do all of this
+# The service needs to run in the www-data group
+[Service]
+User=amundsen
+Group=www-data
+
+WorkingDirectory=/home/amundsen/amundsensearchlibrary
+Environment="PATH=/home/amundsen/amundsensearchlibrary/bin"
+Environment="PROXY_ENDPOINT=https://${ELK_ENDPOINT}"
+Environment="SEARCH_SVC_CONFIG_MODULE_CLASS=search_service.config.ProdConfig"
+ExecStart=/home/amundsen/amundsensearchlibrary/bin/gunicorn --workers 3 --bind unix:search.sock -m 007 search_service.search_wsgi
+
+[Install]
+WantedBy=multi-user.target

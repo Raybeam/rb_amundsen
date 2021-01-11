@@ -60,7 +60,7 @@ data "aws_ami" "neo4j" {
 
   filter {
     name   = "name"
-    values = ["neo4j-community-*"]
+    values = ["neo4j-community-1-3.*"]
   }
 
   filter {
@@ -139,37 +139,31 @@ resource "aws_instance" "neo4j" {
   tags = local.tags
 }
 
-
-data "aws_ami" "ubuntu" {
+data "aws_ami" "amundsen" {
   most_recent = true
 
   filter {
     name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-focal-20.04-*"]
+    values = ["rb_amundsen *"]
   }
 
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
+  owners = ["264221317181"] # Canonical
+}
 
-  filter {
-    name   = "root-device-type"
-    values = ["ebs"]
+data "template_file" "amundsen" {
+  template = file("${path.module}/user_data/amundsen.tpl.sh")
+  vars = {
+    neo4j_endpoint      = aws_instance.neo4j.public_ip
+    elk_endpoint        = aws_elasticsearch_domain.es.endpoint
+    elk_kibana_endpoint = aws_elasticsearch_domain.es.kibana_endpoint
+    neo4j_password      = var.neo4j_password
   }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
-
-  owners = ["099720109477"] # Canonical
 }
 
 # t3.small
 resource "aws_instance" "amundsen" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = "t3.small"
+  ami           = data.aws_ami.amundsen.id
+  instance_type = "m5.large"
 
   subnet_id                   = element(module.vpc.public_subnets, 0)
   associate_public_ip_address = true
@@ -178,6 +172,8 @@ resource "aws_instance" "amundsen" {
   key_name               = aws_key_pair.self.key_name
 
   tags = local.tags
+
+  user_data = data.template_file.amundsen.rendered
 }
 
 resource "aws_security_group" "es" {
@@ -207,6 +203,22 @@ resource "aws_security_group" "amundsen" {
     protocol         = "tcp"
   }
 
+  ingress {
+    cidr_blocks      = var.ingress_cidr_block
+    ipv6_cidr_blocks = var.ipv6_ingress_cidr_block
+    from_port        = 5001
+    to_port          = 5001
+    protocol         = "tcp"
+  }
+
+  ingress {
+    cidr_blocks      = var.ingress_cidr_block
+    ipv6_cidr_blocks = var.ipv6_ingress_cidr_block
+    from_port        = 5000
+    to_port          = 5000
+    protocol         = "tcp"
+  }
+
 
   tags = local.tags
 }
@@ -217,10 +229,10 @@ resource "aws_iam_service_linked_role" "es" {
 
 resource "aws_elasticsearch_domain" "es" {
   domain_name           = local.elk_domain
-  elasticsearch_version = "7.9"
+  elasticsearch_version = "6.8"
 
   cluster_config {
-    instance_count = 1
+    instance_count = 2
 
     instance_type = "r5.large.elasticsearch"
   }
@@ -261,10 +273,3 @@ resource "aws_elasticsearch_domain" "es" {
   }
 }
 
-output "elk_endpoint" {
-  value = aws_elasticsearch_domain.es.endpoint
-}
-
-output "elk_kibana_endpoint" {
-  value = aws_elasticsearch_domain.es.kibana_endpoint
-}

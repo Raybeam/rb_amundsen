@@ -1,0 +1,18 @@
+[Unit]
+Description=Amundsen metadata project
+After=network.target
+
+# I want to create a deploy/www-data user to do all of this
+# The service needs to run in the www-data group
+[Service]
+User=amundsen
+Group=www-data
+
+WorkingDirectory=/home/amundsen/amundsenmetadatalibrary
+Environment="PATH=/home/amundsen/amundsenmetadatalibrary/bin"
+Environment="CREDENTIALS_PROXY_PASSWORD=${NEO4J_PASSWORD}"
+Environment="PROXY_HOST=${NEO4J_ENDPOINT}"
+ExecStart=/home/amundsen/amundsenmetadatalibrary/bin/gunicorn --workers 3 --bind unix:metadata.sock -m 007 metadata_service.metadata_wsgi
+
+[Install]
+WantedBy=multi-user.target

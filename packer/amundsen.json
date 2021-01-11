@@ -1,0 +1,40 @@
+{
+    "variables": {
+      "aws_access_key": "",
+      "aws_secret_key": ""
+    },
+    "builders": [
+      {
+        "type": "amazon-ebs",
+        "access_key": "{{user `aws_access_key`}}",
+        "secret_key": "{{user `aws_secret_key`}}",
+        "region": "us-west-2",
+        "source_ami_filter": {
+          "filters": {
+            "virtualization-type": "hvm",
+            "name": "ubuntu/images/hvm-ssd/ubuntu-focal-20.04-*",
+            "root-device-type": "ebs",
+            "architecture": "x86_64"
+          },
+          "owners": ["099720109477"],
+          "most_recent": true
+        },
+        "instance_type": "m5.large",
+        "ssh_username": "ubuntu",
+        "ami_name": "rb_amundsen {{timestamp}}"
+      }
+    ],
+    "provisioners": [
+      {
+        "type": "shell",
+        "execute_command": "{{.Vars}} DEBIAN_FRONTEND='noninteractive' sudo -S -E '{{.Path}}'", 
+        "script": "./setup.sh"
+      },
+      {
+        "type": "shell",
+        "script": "./add_code.sh"
+
+      }
+    ]
+  }
+  
