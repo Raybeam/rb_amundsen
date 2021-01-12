@@ -33,7 +33,25 @@
       {
         "type": "shell",
         "script": "./add_code.sh"
-
+      },
+      {
+        "type": "file",
+        "source": "./configs/metadata_config.py",
+        "destination": "/home/ubuntu/amundsenmetadatalibrary/metadata_service/config.py"
+      },
+      {
+        "type": "file",
+        "source": "./configs/search_config.py",
+        "destination": "/home/ubuntu/amundsensearchlibrary/search_service/config.py"
+      },
+      {
+        "type": "file",
+        "source": "./configs/frontend_config.py",
+        "destination": "/home/ubuntu/amundsenfrontendlibrary/amundsen_application/config.py"
+      },
+      {
+        "type": "shell",
+        "script": "./install_code.sh"
       }
     ]
   }
