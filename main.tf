@@ -15,6 +15,7 @@ locals {
     Environment = "dev"
   }
   elk_domain = "${local.prefix}-elk-domain"
+  zone_name  = "cevility.com."
 }
 
 provider "aws" {
@@ -24,6 +25,10 @@ provider "aws" {
 
 data "aws_region" "current" {}
 data "aws_caller_identity" "current" {}
+
+data "aws_route53_zone" "selected" {
+  name = local.zone_name
+}
 
 resource "aws_eip" "nat" {
   count = 1
@@ -136,7 +141,16 @@ resource "aws_instance" "neo4j" {
   vpc_security_group_ids = [aws_security_group.neo4j_access.id, aws_security_group.ssh_access.id, module.vpc.default_security_group_id]
   key_name               = aws_key_pair.self.key_name
 
-  tags = local.tags
+  tags      = local.tags
+  user_data = data.template_file.neo4j.rendered
+}
+
+resource "aws_route53_record" "neo4j" {
+  zone_id = data.aws_route53_zone.selected.zone_id
+  name    = "neo4j.${data.aws_route53_zone.selected.name}"
+  type    = "A"
+  ttl     = "300"
+  records = [aws_instance.neo4j.public_ip]
 }
 
 data "aws_ami" "amundsen" {
@@ -160,6 +174,13 @@ data "template_file" "amundsen" {
   }
 }
 
+data "template_file" "neo4j" {
+  template = file("${path.module}/user_data/neo4j.tpl.sh")
+  vars = {
+    neo4j_password = var.neo4j_password
+  }
+}
+
 # t3.small
 resource "aws_instance" "amundsen" {
   ami           = data.aws_ami.amundsen.id
@@ -174,6 +195,14 @@ resource "aws_instance" "amundsen" {
   tags = local.tags
 
   user_data = data.template_file.amundsen.rendered
+}
+
+resource "aws_route53_record" "amundsen" {
+  zone_id = data.aws_route53_zone.selected.zone_id
+  name    = "www.${data.aws_route53_zone.selected.name}"
+  type    = "A"
+  ttl     = "300"
+  records = [aws_instance.amundsen.public_ip]
 }
 
 resource "aws_security_group" "es" {
